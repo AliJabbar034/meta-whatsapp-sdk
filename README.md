@@ -9,6 +9,31 @@ It provides a simple client with:
 - webhook verification utility
 - typed error handling
 
+## Why This SDK
+
+The Meta WhatsApp Cloud API is powerful but repetitive to integrate directly for every project.
+
+This SDK exists to give developers a minimal, reliable, and fast way to ship WhatsApp messaging features without rewriting the same boilerplate each time.
+
+## Benefits and How It Helps
+
+- Faster integration: start sending messages with a small config object.
+- Cleaner code: use simple methods like `sendText`, `sendTemplate`, and `sendInteractive`.
+- Better reliability by default: built-in retry and optional rate limiting.
+- Easier onboarding for teams: consistent API shape and practical docs.
+- Production-friendly error handling: `WhatsAppError` includes status and Meta error code.
+- Optional complexity: start send-only, add webhooks/inbound handling only when needed.
+
+## Why Developers Choose This
+
+- Less boilerplate: no repeated Axios setup, payload shaping, and error parsing in every project.
+- Better defaults: retry and rate-limit support are already available when traffic grows.
+- Faster debugging: Meta status and error codes are surfaced directly through `WhatsAppError`.
+- Easy to scale from MVP to production: start with `sendText`, then add templates, media, and webhooks.
+- Team-friendly API: consistent method naming and typed payloads reduce onboarding time.
+- Minimal lock-in: built on official Meta Cloud API primitives, not a heavy abstraction layer.
+
+
 Setup Meta assets step-by-step: [`META_SETUP_GUIDE.md`](./META_SETUP_GUIDE.md)
 
 ## Installation
@@ -259,6 +284,37 @@ try {
     console.error(error.status);
     console.error(error.metaCode);
   }
+}
+```
+
+## Message Delivery Troubleshooting
+
+### Failed with `status: "failed"` and Meta error `131047` (Re-engagement message)
+
+This means:
+
+- More than 24 hours have passed since the user last replied.
+- You cannot send free-form text messages (like `sendText`) outside that 24-hour window.
+- You must send an approved template message first to reopen the conversation.
+
+What to do:
+
+1. Send an approved template to that user (`sendTemplate`).
+2. Wait for the user to reply.
+3. After that reply, normal `sendText` works again for the next 24 hours.
+
+Practical setup:
+
+- In Meta dashboard, create/approve a simple template (for example `hello_world`).
+- Add a server endpoint that calls `sendTemplate` (for example `POST /send-template`).
+
+Example payload for your server endpoint:
+
+```json
+{
+  "to": "923084041419",
+  "name": "hello_world",
+  "languageCode": "en_US"
 }
 ```
 

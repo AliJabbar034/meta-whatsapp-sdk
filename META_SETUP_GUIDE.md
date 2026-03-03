@@ -82,6 +82,58 @@ const challenge = verifyWebhook(
 );
 ```
 
+Full Express example (verification + event receiver):
+
+```ts
+import express from "express";
+import { verifyWebhook } from "meta-whatsapp-sdk";
+
+const app = express();
+app.use(express.json());
+
+app.get("/webhook", (req, res) => {
+  const mode = String(req.query["hub.mode"] || "");
+  const token = String(req.query["hub.verify_token"] || "");
+  const challenge = String(req.query["hub.challenge"] || "");
+
+  try {
+    const verifiedChallenge = verifyWebhook(
+      mode,
+      token,
+      challenge,
+      process.env.WHATSAPP_VERIFY_TOKEN || ""
+    );
+    return res.status(200).send(verifiedChallenge);
+  } catch (error) {
+    return res.status(403).json({
+      ok: false,
+      message: "Webhook verification failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+app.post("/webhook", (req, res) => {
+  // Acknowledge quickly to prevent webhook retries from Meta.
+  res.sendStatus(200);
+
+  const body = req.body;
+  const value = body?.entry?.[0]?.changes?.[0]?.value;
+  if (!value) {
+    console.log("Webhook event received:", JSON.stringify(body, null, 2));
+    return;
+  }
+
+  if (value.messages) {
+    console.log("Inbound messages:", JSON.stringify(value.messages, null, 2));
+  }
+
+  if (value.statuses) {
+    console.log("Message statuses:", JSON.stringify(value.statuses, null, 2));
+  }
+});
+```
+
 ## Step 5: Handle Incoming Events
 
 Your `POST /webhook` should:
